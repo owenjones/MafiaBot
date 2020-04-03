@@ -254,7 +254,7 @@ class Game :
         return count > 0
 
     def allocateRoles(self) :
-        nMafia = 1 if len(self.players) <= 5 else (math.floor(len(self.players)/4) + 1)
+        nMafia = 1 if len(self.players) <= 5 else (math.floor(len(self.players) / 5) + 1)
 
         random.shuffle(self.players)
 
