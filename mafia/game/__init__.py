@@ -3,7 +3,7 @@ import random
 from enum import Enum
 from collections import Counter
 import discord
-from mafiabot.helpers import (parseMessage, userInActiveGame, isDM, Colours)
+from gamebot.helpers import (parseMessage, userInActiveGame, isDM, Colours)
 
 commands = [
     "join",
