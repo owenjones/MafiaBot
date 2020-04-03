@@ -238,7 +238,7 @@ class Game :
                     colour=Colours.BLUE
                 ))
 
-        print("{} sent by {}".format(command, message.author.display_name))
+        # print("{} sent by {}".format(command, message.author.display_name))
 
     # Game Helpers
     def checkWinConditions(self) :
@@ -266,9 +266,9 @@ class Game :
 
         random.shuffle(self.players)
 
-        print("{} is the mafia".format([ m.display_name for m in self.mafia ]))
-        print("{} is the doctor".format(self.doctor.display_name if self.doctor else "-"))
-        print("{} is the detective".format(self.detective.display_name if self.detective else "-"))
+        # print("{} is the mafia".format([ m.display_name for m in self.mafia ]))
+        # print("{} is the doctor".format(self.doctor.display_name if self.doctor else "-"))
+        # print("{} is the detective".format(self.detective.display_name if self.detective else "-"))
 
     async def makeMafiaChannel(self) :
         if not self.mafiaChannel :
