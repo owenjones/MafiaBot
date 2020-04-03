@@ -198,13 +198,13 @@ class Game :
             if self.state == State.START :
                 if len(self.players) < self.minPlayers :
                     await self.channel.send(embed=discord.Embed(
-                        description="I'm waiting for more players to join, use `{0}join` to join".format(self.prefix),
+                        description="I'm waiting for more players to join, use `{0}join` if you want to play".format(self.prefix),
                         colour=Colours.BLUE
                     ))
 
                 else :
                     await self.channel.send(embed=discord.Embed(
-                        description="I'm waiting for someone to start the game, use `{0}start` to start".format(self.prefix),
+                        description="I'm waiting for someone to start the game, use `{0}start` when you're ready to begin".format(self.prefix),
                         colour=Colours.BLUE
                     ))
 
