@@ -115,28 +115,16 @@ class GameBot(discord.Client) :
 
     async def on_message(self, message) :
         globalPrefix = self.settings["bot"]["prefix"]
-        activeGame = userInActiveGame(message.author.id, self.active) # can we move this check later to reduce processing (once we've ruled out other comms possibilities?)
-        # managableGuilds = guildsUserCanManage(message.author, self.guilds) # TODO: allow setup in DM
+        activeGame = userInActiveGame(message.author.id, self.active)
 
         if message.guild and message.guild.id in self.settings :
             # message send within a guild (so in a channel)
             guildPrefix = self.settings[message.guild.id]["prefix"]
+
         elif (isDM(message) and activeGame) :
             # message sent in DM by somebody in an active game - FUTURE: handle guild commands in DMs too
             guildPrefix = self.settings[self.active[activeGame]["guild"]]["prefix"]
 
-        # elif managableGuilds :
-        #     prefixes = [ self.settings[i]["prefix"] for i in managableGuilds if i in self.settings ]
-        #     matchedPrefixes = list(filter(lambda x : hasPrefix(message, x), prefixes))
-        #     print(managableGuilds)
-        #     print(prefixes)
-        #
-        #     if len(prefixes) < 1 and len(matchedPrefixes) < 1:
-        #         guildPrefix = False
-        #     else :
-        #         guildPrefix = matchedPrefixes[0]
-        #
-        #     print(guildPrefix)
         else :
             guildPrefix = False
 
