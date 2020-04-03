@@ -287,7 +287,7 @@ class MafiaBot(GameBot) :
     @guard.onlyActiveChannel
     async def cMafiaDestroy(self, message, args) :
         if message.channel.id in self.activeGames :
-            # await self.activeGames[message.channel.id]["game"].jumpToEnd(message)
+            await self.activeGames[message.channel.id]["game"].destroy()
             del self.activeGames[message.channel.id]["game"]
             del self.activeGames[message.channel.id]
             await message.channel.send("The game was destroyed!")
