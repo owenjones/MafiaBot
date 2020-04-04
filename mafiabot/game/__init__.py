@@ -98,7 +98,7 @@ class Game :
                     await message.channel.send("{} joined the game ({})".format(message.author.mention, l))
 
                 except discord.errors.Forbidden :
-                    await self.channel.send("{0.mention} you have your DMs turned off - the game doesn't work if I can't send you a messages :cry:".format(message.author))
+                    await self.channel.send("{0.mention} you have your DMs turned off - the game doesn't work if I can't send you messages :cry:".format(message.author))
 
         elif command == "leave" and message.channel == self.channel :
             if message.author in self.players :
