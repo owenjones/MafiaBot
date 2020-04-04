@@ -24,11 +24,12 @@ def guildOwner(command) :
 def guildManager(command) :
     async def guard(bot, message, args) :
         owner = message.author == message.guild.owner
-        mServer = message.author.guild_permissions.manage_guild
+        mAdmin = message.author.guild_permissions.administrator
+        mManage = message.author.guild_permissions.manage_guild
         mUser = message.author.id in bot.settings[message.guild.id]["manageUsers"]
         mRole = len([ r for r in message.author.roles if r.id in bot.settings[message.guild.id]["manageRoles"] ]) > 0
 
-        if owner or mServer or mUser or mRole :
+        if owner or mAdmin or mManage or mUser or mRole :
             await command(bot, message, args)
 
     return guard
