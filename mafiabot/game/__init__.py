@@ -83,12 +83,22 @@ class Game :
             elif userInActiveGame(message.author.id, self.bot.activeGames) :
                 await message.channel.send("You're already in a game elsewhere!")
             else:
-                self.players.append(message.author)
-                if len(self.players) < self.minPlayers :
-                    l = "{} players of {} needed".format(len(self.players), self.minPlayers)
-                else :
-                    l = "{} players of maximum {}".format(len(self.players), self.maxPlayers)
-                await message.channel.send("{} joined the game ({})".format(message.author.mention, l))
+                try :
+                    embed = discord.Embed(
+                        description="Welcome to Upper Lowerstoft, we hope you have a peaceful visit.\n\nDuring the game I will send you messages here, if you need to leave at any point message `{}leave` in the game channel.".format(self.prefix),
+                        colour=Colours.DARK_BLUE
+                    )
+                    await message.author.send(embed=embed)
+
+                    self.players.append(message.author)
+                    if len(self.players) < self.minPlayers :
+                        l = "{} players of {} needed".format(len(self.players), self.minPlayers)
+                    else :
+                        l = "{} players of maximum {}".format(len(self.players), self.maxPlayers)
+                    await message.channel.send("{} joined the game ({})".format(message.author.mention, l))
+
+                except discord.errors.Forbidden :
+                    await self.channel.send("{0.mention} you have your DMs turned off - the game doesn't work if I can't send you a messages :cry:".format(message.author))
 
         elif command == "leave" and message.channel == self.channel :
             if message.author in self.players :
@@ -350,22 +360,28 @@ class Game :
         self.round += 1
         await self.startRound()
 
-    async def endGame(self, win) :
+    async def endGame(self, win=False) :
         if win == Win.VILLAGERS :
             winners = " ".join([ "{0.mention}".format(m) for m in self.villagers ])
             embed = discord.Embed(
-            description="The villagers ({}) have won! Message `{}restart` to play again".format(winners, self.prefix),
+            description="The villagers ({}) have won!\n\nMessage `{}restart` to play again".format(winners, self.prefix),
             colour=Colours.DARK_GREEN
             )
 
         elif win == Win.MAFIA :
             winners = " ".join([ "{0.mention}".format(m) for m in self.mafia ])
             embed = discord.Embed(
-            description="The Mafia ({}) have won! Message `{}restart` to play again".format(winners, self.prefix),
+            description="The Mafia ({}) have won!\n\nMessage `{}restart` to play again".format(winners, self.prefix),
             colour=Colours.DARK_RED
             )
 
             await self.removeMafiaChannel()
+
+        else :
+            embed = discord.Embed(
+                description="The game has had to end for some reason :cry:\n\nMessage `{}restart` to start a new game".format(self.prefix),
+                colour=Colours.BLUE
+            )
 
         await self.channel.send(embed=embed)
 
@@ -477,7 +493,7 @@ class Game :
 
     async def purge(self) :
         chosen, count = Counter(self.roundPurge.values()).most_common(1)[0]
-        if chosen != False and count >= (math.floor(len(self.players) / 2) + 1) :
+        if chosen != False and count >= (math.ceil(len(self.players) / 2)) :
             await self.channel.send(embed=discord.Embed(
                 description="The village has agreed that {} should be purged".format(chosen.display_name),
                 colour=Colours.DARK_RED
