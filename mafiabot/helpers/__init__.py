@@ -1,3 +1,4 @@
+import os
 from collections import Counter
 import discord
 from credentials import ownerID
@@ -42,6 +43,9 @@ def parseMessage(message, prefix) :
 #     frequency = dict(Counter(input.values()))
 #
 #     return (value, count)
+
+def tail(f, lines) :
+    pass
 
 class Colours :
     DEFAULT = 0

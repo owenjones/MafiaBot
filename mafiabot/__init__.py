@@ -25,6 +25,7 @@ class GameBot(discord.Client) :
         # Bot Owner
         "help"     : "cBotHelp",
         "stats"    : "cBotStats",
+        "log"      : "cBotLog",
         "leave"    : "cBotLeave",
         "stop"     : "cBotStop",
         "reload"   : "cBotReload",
@@ -184,6 +185,10 @@ class GameBot(discord.Client) :
         await message.channel.send(embed=embed) # TODO
 
     @guard.botManager
+    async def cBotLog(self, message, args) :
+        pass
+
+    @guard.botManager
     async def cBotLeave(self, message, args) :
         await message.channel.send("Leaving {}".format(message.guild.name))
         await self.leaveGuild(message.guild)
@@ -234,7 +239,7 @@ class MafiaBot(GameBot) :
         "disable"    : "cGuildDisable",
         "here"       : "cGuildHere",
         "use"        : "cGuildHere",
-        "remove" : "cGuildLeave",
+        "remove"     : "cGuildLeave",
 
         # Active Mafia Channel
         "mafia"   : "cMafia",
@@ -295,7 +300,6 @@ class MafiaBot(GameBot) :
 
     @guard.guildManager
     async def cGuildLeave(self, message, args) :
-
         if message.channel.id in self.settings[message.guild.id]["activeChannels"] :
             self.settings[message.guild.id]["activeChannels"].remove(message.channel.id)
             await message.channel.send("No longer active in {0.mention}".format(message.channel))
