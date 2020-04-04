@@ -6,8 +6,14 @@ import pickle
 import asyncio
 from credentials import ownerID
 from mafiabot.decorators import guard
-from mafiabot.helpers import (hasPrefix, guildsUserCanManage, userInActiveGame, isDM, parseMessage)
+from mafiabot.helpers import (hasPrefix, guildsUserCanManage, userInActiveGame, isDM, parseMessage, Colours)
 from mafiabot.game import (Game, commands)
+
+logger = logging.getLogger('discord')
+logger.setLevel(logging.INFO)
+handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w')
+handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
+logger.addHandler(handler)
 
 # TODO: move this into own file, restructure modules, move generic commands from MafiaBot into GameBot
 class GameBot(discord.Client) :
@@ -65,19 +71,32 @@ class GameBot(discord.Client) :
         activity = discord.Game("Mafia in {} Guild{}".format(len(self.guilds), "s" if len(self.guilds) > 1 else ""))
         await self.change_presence(status=discord.Status.online, activity=activity)
 
-    async def on_ready(self) :
-        await self.updatePresenceCount()
-        print('{} launched at {}, active on {} guilds.'.format(self.name, datetime.now(), len(self.guilds)))
-
-    async def on_guild_join(self, guild) :
+    async def sendGuildIntro(self, guild) :
         self.generateSettings(guild.id)
 
         await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is **!**, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
 
+    def removeFromGuild(self, guild) :
+        if guild.id in self.settings :
+            del self.settings[guild.id]
+
+    async def on_ready(self) :
+        for g in self.guilds :
+            if g.id not in self.settings :
+                await self.sendGuildIntro(id)
+
+            # also check if a guild is in settings but not in the guilds list
+
+        await self.updatePresenceCount()
+
+        print('{} launched at {}, active on {} guilds.'.format(self.name, datetime.now(), len(self.guilds)))
+
+    async def on_guild_join(self, guild) :
+        await self.sentGuildIntro(guild)
         await self.updatePresenceCount()
 
     async def on_guild_leave(self, guild) :
-        del self.settings[guild.id]
+        self.removeFromGuild(self, guild)
         await self.updatePresenceCount()
 
     async def on_message(self, message) :
@@ -151,7 +170,18 @@ class GameBot(discord.Client) :
 
     @guard.botManager
     async def cBotStats(self, message, args) :
-        await message.channel.send(message) # TODO
+        embed = discord.Embed(
+            title="{}".format(self.name),
+            description="Currently running on {0} Guild{1} ({2}), with {3} active game{4}".format(
+                len(self.guilds),
+                "s" if len(self.guilds) != 1 else "",
+                ", ".join([g.name for g in self.guilds]),
+                len(self.activeGames),
+                "s" if len(self.activeGames) != 1 else "",
+            ),
+            colour=Colours.LUMINOUS_VIVID_PINK
+        )
+        await message.channel.send(embed=embed) # TODO
 
     @guard.botManager
     async def cBotLeave(self, message, args) :
