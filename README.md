@@ -21,7 +21,7 @@ The bot will prompt with other commands during the game:
 
 ## Administering the bot in your server
 ### Control Commands
-These can initially only be run by the server owner or a members with the `Administrator` or `Manage Server` permissions granted. You can add other users or roles who can control the bot using the settings command.
+These can initially only be run by the server owner or members with the `Administrator` or `Manage Server` permissions granted. You can give other members or roles the ability to control the bot using the settings command.
 
 * **!here** - to mark the channel(s) MafiaBot can use to start games in
 * **!use #channel** - works like `!here`, but can be run from outside the channel you want games in
