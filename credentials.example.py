@@ -1,0 +1,2 @@
+discordToken = ''
+ownerID = 0
