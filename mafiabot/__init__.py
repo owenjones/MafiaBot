@@ -84,7 +84,7 @@ class GameBot(discord.Client) :
     async def on_ready(self) :
         for g in self.guilds :
             if g.id not in self.settings :
-                await self.sendGuildIntro(id)
+                await self.sendGuildIntro(g)
 
             # also check if a guild is in settings but not in the guilds list
 
