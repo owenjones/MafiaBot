@@ -1,4 +1,4 @@
-# decorators to protect command handlers
+import discord
 
 def botOwner(command) :
     async def guard(bot, message, args) :

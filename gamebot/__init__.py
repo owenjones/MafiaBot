@@ -60,8 +60,8 @@ class GameBot(discord.Client) :
             }
 
     async def close(self) :
-        for g in self.active :
-            await self.active[g]["game"].destroy()
+        for game in self.active :
+            await self.active[game]["game"].destroy()
 
         self.saveSettings()
         await super().close()
@@ -82,35 +82,45 @@ class GameBot(discord.Client) :
             pickle.dump(self.settings, f, pickle.HIGHEST_PROTOCOL)
 
     async def updatePresenceCount(self) :
-        activity = discord.Game("Mafia in {} Guild{}".format(len(self.guilds), "s" if len(self.guilds) > 1 else ""))
+        activity = discord.Game(
+            "{} in {} server{}".format(
+                self.activity,
+                len(self.guilds),
+                "s" if len(self.guilds) > 1 else ""
+            )
+        )
+
         await self.change_presence(status=discord.Status.online, activity=activity)
 
     async def sendGuildIntro(self, guild) :
         self.generateSettings(guild.id)
 
-        await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is **!**, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
+        try :
+            await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is `!`, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
 
-    def removeFromGuild(self, guild) :
+        except discord.errors.Forbidden :
+            pass
+
+    async def on_ready(self) :
+        for guild in self.guilds :
+            if guild.id not in self.settings :
+                await self.sendGuildIntro(guild)
+
+        await self.updatePresenceCount()
+
+        logger.info('{} launched, active on {} guilds'.format(self.name, len(self.guilds)))
+
+    async def on_guild_join(self, guild) :
+        logger.info("Joined guild {}".format(guild.name))
+        await self.sendGuildIntro(guild)
+        await self.updatePresenceCount()
+
+    async def on_guild_remove(self, guild) :
+        logger.info("Left guild {}".format(guild.name))
+
         if guild.id in self.settings :
             del self.settings[guild.id]
 
-    async def on_ready(self) :
-        for g in self.guilds :
-            if g.id not in self.settings :
-                await self.sendGuildIntro(g)
-
-            # also check if a guild is in settings but not in the guilds list
-
-        await self.updatePresenceCount()
-
-        print('{} launched at {}, active on {} guilds.'.format(self.name, datetime.now(), len(self.guilds)))
-
-    async def on_guild_join(self, guild) :
-        await self.sentGuildIntro(guild)
-        await self.updatePresenceCount()
-
-    async def on_guild_leave(self, guild) :
-        self.removeFromGuild(self, guild)
         await self.updatePresenceCount()
 
     async def on_message(self, message) :
@@ -179,8 +189,8 @@ class GameBot(discord.Client) :
                 len(self.guilds),
                 "s" if len(self.guilds) != 1 else "",
                 ", ".join([g.name for g in self.guilds]),
-                len(self.activeGames),
-                "s" if len(self.activeGames) != 1 else "",
+                len(self.active),
+                "s" if len(self.active) != 1 else "",
             ),
             colour=Colours.LUMINOUS_VIVID_PINK
         )
@@ -191,6 +201,7 @@ class GameBot(discord.Client) :
         pass
 
     @guard.botManager
+    @guard.onlyChannel
     async def cBotLeave(self, message, args) :
         await message.channel.send("Leaving {}".format(message.guild.name))
         await self.leaveGuild(message.guild)
