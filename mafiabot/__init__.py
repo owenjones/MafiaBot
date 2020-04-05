@@ -1,4 +1,3 @@
-from datetime import datetime
 import discord
 import logging
 import os.path
@@ -75,29 +74,28 @@ class GameBot(discord.Client) :
     async def sendGuildIntro(self, guild) :
         self.generateSettings(guild.id)
 
-        await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is **!**, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
+        await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is `!`, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
 
-    def removeFromGuild(self, guild) :
+    async def on_ready(self) :
+        for guild in self.guilds :
+            if guild.id not in self.settings :
+                await self.sendGuildIntro(guild)
+
+        await self.updatePresenceCount()
+
+        logger.info('{} launched, active on {} guilds'.format(self.name, len(self.guilds)))
+
+    async def on_guild_join(self, guild) :
+        logger.info("Joined guild {}".format(guild.name))
+        await self.sendGuildIntro(guild)
+        await self.updatePresenceCount()
+
+    async def on_guild_remove(self, guild) :
+        logger.info("Left guild {}".format(guild.name))
+
         if guild.id in self.settings :
             del self.settings[guild.id]
 
-    async def on_ready(self) :
-        for g in self.guilds :
-            if g.id not in self.settings :
-                await self.sendGuildIntro(g)
-
-            # also check if a guild is in settings but not in the guilds list
-
-        await self.updatePresenceCount()
-
-        print('{} launched at {}, active on {} guilds.'.format(self.name, datetime.now(), len(self.guilds)))
-
-    async def on_guild_join(self, guild) :
-        await self.sentGuildIntro(guild)
-        await self.updatePresenceCount()
-
-    async def on_guild_leave(self, guild) :
-        self.removeFromGuild(self, guild)
         await self.updatePresenceCount()
 
     async def on_message(self, message) :
@@ -161,10 +159,6 @@ class GameBot(discord.Client) :
         else :
             return False
 
-    async def leaveGuild(self, guild) :
-        await guild.leave()
-        del self.settings[guild.id]
-
     @guard.botManager
     async def cBotHelp(self, message, args) :
         pass # TODO
@@ -191,7 +185,7 @@ class GameBot(discord.Client) :
     @guard.botManager
     async def cBotLeave(self, message, args) :
         await message.channel.send("Leaving {}".format(message.guild.name))
-        await self.leaveGuild(message.guild)
+        await message.guild.leave()
 
     @guard.botManager
     async def cBotStop(self, message, args) :
