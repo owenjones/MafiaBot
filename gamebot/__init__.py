@@ -95,15 +95,11 @@ class GameBot(discord.Client) :
     async def sendGuildIntro(self, guild) :
         self.generateSettings(guild.id)
 
-<<<<<<< HEAD:mafiabot/__init__.py
-        await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is `!`, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
-=======
         try :
             await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is `!`, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
 
         except discord.errors.Forbidden :
             pass
->>>>>>> restructure:gamebot/__init__.py
 
     async def on_ready(self) :
         for guild in self.guilds :
