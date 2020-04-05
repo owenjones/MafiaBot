@@ -2,10 +2,11 @@ from datetime import datetime
 import os.path
 import pickle
 import discord
+import logging
 from credentials import ownerID
-from mafiabot.decorators import guard
-from mafiabot.helpers import (hasPrefix, guildsUserCanManage, userInActiveGame, isDM, parseMessage, Colours)
-from mafiabot.game import (Game, commands)
+from gamebot.decorators import guard
+from gamebot.helpers import (hasPrefix, userInActiveGame, isDM, parseMessage, Colours)
+from mafia.game import (Game, commands)
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
@@ -13,7 +14,6 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-# TODO: move this into own file, restructure modules, move generic commands from MafiaBot into GameBot
 class GameBot(discord.Client) :
 
     enabled = True
