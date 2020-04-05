@@ -1,12 +1,5 @@
-import os
-from collections import Counter
 import discord
 from credentials import ownerID
-
-from pprint import pprint
-
-def fromBotOwner(message) :
-    return message.author.id == ownerID
 
 def isDM(message) :
     return (type(message.channel) == discord.DMChannel)
@@ -37,15 +30,6 @@ def parseMessage(message, prefix) :
     command = args[0].lower()
 
     return command, args
-
-# def mostCommonValue(input) :
-#     """ finds the most common value in a dict - only returns true if uniquely common """
-#     frequency = dict(Counter(input.values()))
-#
-#     return (value, count)
-
-def tail(f, lines) :
-    pass
 
 class Colours :
     DEFAULT = 0

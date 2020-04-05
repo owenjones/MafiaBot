@@ -3,7 +3,7 @@ import random
 from enum import Enum
 from collections import Counter
 import discord
-from mafiabot.helpers import (parseMessage, userInActiveGame, isDM, Colours)
+from gamebot.helpers import (parseMessage, userInActiveGame, isDM, Colours)
 
 commands = [
     "join",
@@ -80,7 +80,7 @@ class Game :
         if command == "join" and message.channel == self.channel and self.state == State.START :
             if self.hasUser(message.author.id) :
                 await message.channel.send("You're already in the game!")
-            elif userInActiveGame(message.author.id, self.bot.activeGames) :
+            elif userInActiveGame(message.author.id, self.bot.active) :
                 await message.channel.send("You're already in a game elsewhere!")
             else:
                 try :

@@ -1,12 +1,12 @@
-import discord
 import logging
 import os.path
 import pickle
-import asyncio
+import discord
+import logging
 from credentials import ownerID
-from mafiabot.decorators import guard
-from mafiabot.helpers import (hasPrefix, guildsUserCanManage, userInActiveGame, isDM, parseMessage, Colours)
-from mafiabot.game import (Game, commands)
+from gamebot.decorators import guard
+from gamebot.helpers import (hasPrefix, userInActiveGame, isDM, parseMessage, Colours)
+from mafia.game import (Game, commands)
 
 logger = logging.getLogger('discord')
 logger.setLevel(logging.INFO)
@@ -14,7 +14,6 @@ handler = logging.FileHandler(filename='discord.log', encoding='utf-8', mode='w'
 handler.setFormatter(logging.Formatter('%(asctime)s:%(levelname)s:%(name)s: %(message)s'))
 logger.addHandler(handler)
 
-# TODO: move this into own file, restructure modules, move generic commands from MafiaBot into GameBot
 class GameBot(discord.Client) :
 
     enabled = True
@@ -31,6 +30,21 @@ class GameBot(discord.Client) :
         "settings" : "cBotSettings"
     }
 
+    guildHandlers = {
+        # Global
+        "help"  : "cGuildHelp",
+
+        # Guild Owner / Manage Server / Guild Specific User/Role
+        "settings"   : "cGuildSettings",
+        "enable"     : "cGuildEnable",
+        "disable"    : "cGuildDisable",
+        "here"       : "cGuildHere",
+        "use"        : "cGuildHere",
+        "remove"     : "cGuildLeave"
+    }
+
+    active = {}
+
     def __init__(self) :
         super().__init__()
         if os.path.isfile(self.persist) :
@@ -46,8 +60,8 @@ class GameBot(discord.Client) :
             }
 
     async def close(self) :
-        for g in self.activeGames :
-            await self.activeGames[g]["game"].destroy()
+        for game in self.active :
+            await self.active[game]["game"].destroy()
 
         self.saveSettings()
         await super().close()
@@ -68,13 +82,28 @@ class GameBot(discord.Client) :
             pickle.dump(self.settings, f, pickle.HIGHEST_PROTOCOL)
 
     async def updatePresenceCount(self) :
-        activity = discord.Game("Mafia in {} Guild{}".format(len(self.guilds), "s" if len(self.guilds) > 1 else ""))
+        activity = discord.Game(
+            "{} in {} server{}".format(
+                self.activity,
+                len(self.guilds),
+                "s" if len(self.guilds) > 1 else ""
+            )
+        )
+
         await self.change_presence(status=discord.Status.online, activity=activity)
 
     async def sendGuildIntro(self, guild) :
         self.generateSettings(guild.id)
 
+<<<<<<< HEAD:mafiabot/__init__.py
         await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is `!`, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
+=======
+        try :
+            await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is `!`, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
+
+        except discord.errors.Forbidden :
+            pass
+>>>>>>> restructure:gamebot/__init__.py
 
     async def on_ready(self) :
         for guild in self.guilds :
@@ -100,35 +129,24 @@ class GameBot(discord.Client) :
 
     async def on_message(self, message) :
         globalPrefix = self.settings["bot"]["prefix"]
-        activeGame = userInActiveGame(message.author.id, self.activeGames) # can we move this check later to reduce processing (once we've ruled out other comms possibilities?)
-        # managableGuilds = guildsUserCanManage(message.author, self.guilds) # TODO: allow setup in DM
+        activeGame = userInActiveGame(message.author.id, self.active)
 
         if message.guild and message.guild.id in self.settings :
             # message send within a guild (so in a channel)
             guildPrefix = self.settings[message.guild.id]["prefix"]
+
         elif (isDM(message) and activeGame) :
             # message sent in DM by somebody in an active game - FUTURE: handle guild commands in DMs too
-            guildPrefix = self.settings[self.activeGames[activeGame]["guild"]]["prefix"]
+            guildPrefix = self.settings[self.active[activeGame]["guild"]]["prefix"]
 
-        # elif managableGuilds :
-        #     prefixes = [ self.settings[i]["prefix"] for i in managableGuilds if i in self.settings ]
-        #     matchedPrefixes = list(filter(lambda x : hasPrefix(message, x), prefixes))
-        #     print(managableGuilds)
-        #     print(prefixes)
-        #
-        #     if len(prefixes) < 1 and len(matchedPrefixes) < 1:
-        #         guildPrefix = False
-        #     else :
-        #         guildPrefix = matchedPrefixes[0]
-        #
-        #     print(guildPrefix)
         else :
             guildPrefix = False
 
         if guildPrefix and hasPrefix(message, guildPrefix) :
-            matched = await self.handleCommand(message, guildPrefix, self.guildHandlers)
+            guildMatched = await self.handleCommand(message, guildPrefix, self.guildHandlers)
+            gameMatched = await self.handleCommand(message, guildPrefix, self.handlers)
 
-            if not matched :
+            if not (guildMatched or gameMatched) :
                 sentInDMWithActiveGame = activeGame and isDM(message)
                 recognisedGuild = message.guild and message.guild.id in self.settings
                 sentInActiveChannel = recognisedGuild and message.channel.id in self.settings[message.guild.id]["activeChannels"]
@@ -142,8 +160,8 @@ class GameBot(discord.Client) :
                     else :
                         id = message.channel.id
 
-                    if id in self.activeGames :
-                        await self.activeGames[id]["game"].on_message(message)
+                    if id in self.active :
+                        await self.active[id]["game"].on_message(message)
 
         if hasPrefix(message, globalPrefix) :
             await self.handleCommand(message, globalPrefix, self.globalHandlers)
@@ -171,8 +189,8 @@ class GameBot(discord.Client) :
                 len(self.guilds),
                 "s" if len(self.guilds) != 1 else "",
                 ", ".join([g.name for g in self.guilds]),
-                len(self.activeGames),
-                "s" if len(self.activeGames) != 1 else "",
+                len(self.active),
+                "s" if len(self.active) != 1 else "",
             ),
             colour=Colours.LUMINOUS_VIVID_PINK
         )
@@ -183,6 +201,7 @@ class GameBot(discord.Client) :
         pass
 
     @guard.botManager
+    @guard.onlyChannel
     async def cBotLeave(self, message, args) :
         await message.channel.send("Leaving {}".format(message.guild.name))
         await message.guild.leave()
@@ -215,33 +234,6 @@ class GameBot(discord.Client) :
                 self.settings["bot"]["manage"].remove(message.mentions[0].id)
 
         await message.channel.send(self.settings)
-
-class MafiaBot(GameBot) :
-
-    name = "MafiaBot"
-    activity = "Mafia"
-    contact = "owen@owenjones.net"
-    persist = "mafiabot.pickle"
-
-    guildHandlers = {
-        # Global
-        "help"  : "cGuildHelp",
-
-        # Guild Owner / Manage Server / Guild Specific User/Role
-        "settings"   : "cGuildSettings",
-        "enable"     : "cGuildEnable",
-        "disable"    : "cGuildDisable",
-        "here"       : "cGuildHere",
-        "use"        : "cGuildHere",
-        "remove"     : "cGuildLeave",
-
-        # Active Mafia Channel
-        "mafia"   : "cMafia",
-        "destroy" : "cMafiaDestroy"
-    }
-
-    activeGames = {}
-    mafiaChannels = {}
 
     # Guild Commands
     async def cGuildHelp(self, message, args) :
@@ -297,25 +289,3 @@ class MafiaBot(GameBot) :
         if message.channel.id in self.settings[message.guild.id]["activeChannels"] :
             self.settings[message.guild.id]["activeChannels"].remove(message.channel.id)
             await message.channel.send("No longer active in {0.mention}".format(message.channel))
-
-    # Active Channel Commands
-    @guard.onlyActiveChannel
-    async def cMafia(self, message, args) :
-        if not message.channel.id in self.activeGames :
-            self.activeGames[message.channel.id] = {
-                "guild" : message.guild.id,
-                "game"  : Game(self, message)
-            }
-
-            await self.activeGames[message.channel.id]["game"].launch(message)
-
-        else :
-            await self.activeGames[message.channel.id]["game"].on_message(message)
-
-    @guard.onlyActiveChannel
-    async def cMafiaDestroy(self, message, args) :
-        if message.channel.id in self.activeGames :
-            await self.activeGames[message.channel.id]["game"].destroy()
-            del self.activeGames[message.channel.id]["game"]
-            del self.activeGames[message.channel.id]
-            await message.channel.send("The game was destroyed!")
