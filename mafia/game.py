@@ -166,7 +166,7 @@ class Game :
             elif message.author == self.detective and isDM(message) :
                 id = IDFromArg(args)
 
-                if id and ((id > 0) and (id < len(self.players))) :
+                if id and ((id > 0) and (id <= len(self.players))) :
                     self.roundDetect = self.players[id-1]
                     await message.channel.send("Choice submitted - {} will be investigated".format(self.roundDetect.display_name))
                 else :
