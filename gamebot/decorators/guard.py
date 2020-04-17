@@ -34,14 +34,14 @@ def guildManager(command) :
 
 def onlyDM(command) :
     async def guard(bot, message, args) :
-        if message.channel == discord.DMChannel :
+        if type(message.channel) == discord.DMChannel :
             await command(bot, message, args)
 
     return guard
 
 def onlyChannel(command) :
     async def guard(bot, message, args) :
-        if message.channel == discord.TextChannel :
+        if type(message.channel) == discord.TextChannel :
             await command(bot, message, args)
 
     return guard
