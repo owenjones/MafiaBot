@@ -23,11 +23,11 @@ class GameBot(discord.Client) :
         # Bot Owner
         "help"     : "cBotHelp",
         "stats"    : "cBotStats",
-        "log"      : "cBotLog",
         "leave"    : "cBotLeave",
         "stop"     : "cBotStop",
         "reload"   : "cBotReload",
-        "settings" : "cBotSettings"
+        "settings" : "cBotSettings",
+        "logset"   : "cBotLogSet"
     }
 
     guildHandlers = {
@@ -40,7 +40,7 @@ class GameBot(discord.Client) :
         "disable"    : "cGuildDisable",
         "here"       : "cGuildHere",
         "use"        : "cGuildHere",
-        "remove"     : "cGuildLeave"
+        "remove"     : "cGuildRemove"
     }
 
     active = {}
@@ -66,6 +66,7 @@ class GameBot(discord.Client) :
         self.saveSettings()
         await super().close()
 
+    # Helpers
     def generateSettings(self, gID) :
 
         self.settings[gID] = {
@@ -101,6 +102,13 @@ class GameBot(discord.Client) :
         except discord.errors.Forbidden :
             pass
 
+    async def checkPermissions(self, channel) :
+        pass
+
+    async def logException(self, exception) :
+        pass
+
+    # Discord Events
     async def on_ready(self) :
         for guild in self.guilds :
             if guild.id not in self.settings :
@@ -173,6 +181,7 @@ class GameBot(discord.Client) :
         else :
             return False
 
+    # Command Handlers
     @guard.botManager
     async def cBotHelp(self, message, args) :
         pass # TODO
@@ -192,12 +201,8 @@ class GameBot(discord.Client) :
         )
         await message.channel.send(embed=embed) # TODO
 
-    @guard.botManager
-    async def cBotLog(self, message, args) :
-        pass
-
-    @guard.botManager
     @guard.onlyChannel
+    @guard.botManager
     async def cBotLeave(self, message, args) :
         await message.channel.send("Leaving {}".format(message.guild.name))
         await message.guild.leave()
@@ -231,9 +236,15 @@ class GameBot(discord.Client) :
 
         await message.channel.send(self.settings)
 
+    @guard.onlyChannel
+    @guard.botManager
+    async def cBotLogSet(self, message, args) :
+        self.settings["bot"]["logChannel"] = (message.guild.id, message.channel.id)
+        await message.channel.send("{} will now log exceptions in this channel".format(self.name))
+
     # Guild Commands
     async def cGuildHelp(self, message, args) :
-        pass
+        pass # TODO
 
     @guard.guildManager
     async def cGuildSettings(self, message, args) :
@@ -266,22 +277,22 @@ class GameBot(discord.Client) :
     def cGuildDisable(self, message, args) :
         self.settings[message.guild.id]["disabled"] = True
 
+    @guard.onlyChannel
     @guard.guildManager
     async def cGuildHere(self, message, args) :
-        if(args[0] == "use") :
-            channel = message.channel_mentions[0]
+        channel = message.channel_mentions[0] if (args[0] == "use" and len(message.channel_mentions) > 0) else message.channel
+
+        if channel.id in self.settings[message.guild.id]["activeChannels"] :
+            await message.channel.send("{0} is already active in {1.mention}".format(self.name, channel))
         else :
-            channel = message.channel
+            hasCorrectPermissions = self.checkPermissions(channel)
 
-        if channel :
-            if channel.id in self.settings[message.guild.id]["activeChannels"] :
-                await message.channel.send("MafiaBot is already active in {0.mention}".format(channel))
-            else :
+            if hasCorrectPermissions :
                 self.settings[message.guild.id]["activeChannels"].append(channel.id)
-                await message.channel.send("MafiaBot now active in {0.mention} - please check I have `manage_channels` permissions for this channel category or I won't be able to work :cry:".format(channel))
+                await message.channel.send("{0} now active in {1.mention}".format(self.name, channel))
 
+    @guard.onlyActiveChannel
     @guard.guildManager
-    async def cGuildLeave(self, message, args) :
-        if message.channel.id in self.settings[message.guild.id]["activeChannels"] :
-            self.settings[message.guild.id]["activeChannels"].remove(message.channel.id)
-            await message.channel.send("No longer active in {0.mention}".format(message.channel))
+    async def cGuildRemove(self, message, args) :
+        self.settings[message.guild.id]["activeChannels"].remove(message.channel.id)
+        await message.channel.send("No longer active in {0.mention}".format(message.channel))

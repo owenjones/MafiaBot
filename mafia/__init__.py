@@ -17,6 +17,13 @@ class Mafia(GameBot) :
 
     mafiaChannels = {}
 
+    permissions = {
+        "category" : [ 'manage_channel' ],
+        "channel"  : [ 'read_messages', 'send_messages', 'embed_links' ]
+    }
+
+    # forward message to game predicate
+
     @guard.onlyActiveChannel
     async def mafia(self, message, args) :
         if not message.channel.id in self.active :

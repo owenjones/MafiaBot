@@ -276,17 +276,19 @@ class Game :
 
         random.shuffle(self.players)
 
-        # print("{} is the mafia".format([ m.display_name for m in self.mafia ]))
-        # print("{} is the doctor".format(self.doctor.display_name if self.doctor else "-"))
-        # print("{} is the detective".format(self.detective.display_name if self.detective else "-"))
-
     async def makeMafiaChannel(self) :
         if not self.mafiaChannel :
             mafiaPermissions = discord.PermissionOverwrite(read_messages=True, send_messages=True)
 
             overwrites = {
                 self.guild.default_role : discord.PermissionOverwrite(read_messages=False),
-                self.guild.me           : discord.PermissionOverwrite(manage_channels=True, manage_permissions=True, read_messages=True, send_messages=True)
+                self.guild.me           : discord.PermissionOverwrite(
+                    manage_channels=True,
+                    manage_permissions=True,
+                    read_messages=True,
+                    send_messages=True,
+                    embed_links=True
+                )
             }
 
             for m in self.mafia :
@@ -438,7 +440,6 @@ class Game :
 
         if self.roundKillSkip :
             summary.add_field(name=":person_shrugging:", value="The Mafia didn't choose anybody to kill this time around", inline=False)
-
             kill = False
 
         elif self.roundKill :
@@ -450,6 +451,9 @@ class Game :
 
             elif self.doctor :
                 summary.add_field(name=":skull_crossbones:", value="The doctor was unable to save them", inline=False)
+                kill = True
+
+            else :
                 kill = True
 
         if self.detective and self.roundDetect :
@@ -471,6 +475,7 @@ class Game :
             await self.moveToPurge()
 
     async def moveToPurge(self) :
+        self.state = State.ROUNDPURGE
 
         if self.roundKillSkip :
             text = "Although the Mafia didn't strike last night, the villagers are still on edge and a village meeting is called..."
@@ -489,7 +494,6 @@ class Game :
         )
 
         await self.channel.send(embed=embed)
-        self.state = State.ROUNDPURGE
 
     async def purge(self) :
         chosen, count = Counter(self.roundPurge.values()).most_common(1)[0]

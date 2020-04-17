@@ -19,9 +19,15 @@ def userInActiveGame(aID, games) :
     else :
         return False
 
+def canManageGuild(author, guild) :
+    guildOwner = guild.owner == author
+    guildAdmin = author.guild_permissions.administrator
+    guildManager = author.guild_permissions.manage_guild
+
+    return guildOwner or guildAdmin or guildManager
+
 def guildsUserCanManage(author, guilds) :
-    # TODO: expand to cover roles with manage_server
-    active = [ g.id for g in guilds if g.owner == author ]
+    active = [ g.id for g in guilds if canManageGuild(author) ]
     return active
 
 def parseMessage(message, prefix) :
