@@ -418,9 +418,9 @@ class Game :
                 await v.send("You're a villager, keep your wits about you there are Mafia on the loose!")
 
     async def sendPrompts(self) :
-        mafiaPrompt = "Each reply with `{}choose <number>` to choose the player you wish to mark for death - you need to come to an agreement as a group, if there's no clear choice then nobody will be marked, so you may want to discuss your choice first!".format(self.prefix)
-        doctorPrompt = "Reply with `{}choose <number>` to choose the player you wish to save".format(self.prefix)
-        detectivePrompt = "Reply with `{}choose <number>` to choose the player you wish to investigate".format(self.prefix)
+        mafiaPrompt = "Each reply with `{}choose number` to choose the player you wish to mark for death - you need to come to an agreement as a group, if there's no clear choice then nobody will be marked, so you may want to discuss your choice first!".format(self.prefix)
+        doctorPrompt = "Reply with `{}choose number` to choose the player you wish to save".format(self.prefix)
+        detectivePrompt = "Reply with `{}choose number` to choose the player you wish to investigate".format(self.prefix)
 
         embed = self.makePlayerListEmbed()
         await self.mafiaChannel.send(mafiaPrompt, embed=embed)
@@ -454,13 +454,22 @@ class Game :
                 kill = True
 
             else :
+                # the doctor has been killed
                 kill = True
 
         if self.detective and self.roundDetect :
             if self.roundDetect in self.mafia :
                 summary.add_field(name=":detective:", value="The detective found a member of the mafia", inline=False)
+                await self.detective.send(embed=discord.Embed(
+                    description="Correct - {} is in the mafia!".format(self.roundDetect.display_name),
+                    colour=Colours.DARK_RED
+                ))
             else :
                 summary.add_field(name=":detective:", value="The detective didn't find a member of the mafia", inline=False)
+                await self.detective.send(embed=discord.Embed(
+                    description="Incorrect - {} is not in the mafia!".format(self.roundDetect.display_name),
+                    colour=Colours.DARK_GREEN
+                ))
 
         await self.channel.send(embed=summary)
 
