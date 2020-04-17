@@ -18,7 +18,7 @@ class Mafia(GameBot) :
     mafiaChannels = {}
 
     permissions = {
-        "category" : [ 'manage_channel' ],
+        "category" : [ 'in_category', 'manage_channels' ],
         "channel"  : [ 'read_messages', 'send_messages', 'embed_links' ]
     }
 
