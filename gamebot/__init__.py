@@ -31,7 +31,8 @@ class GameBot(discord.Client) :
         "settings" : "cBotSettings",
         "logset"   : "cBotLogSet",
 
-        "exception" : "cBotTestException"
+        "exception"   : "cBotTestException",
+        "permissions" : "cBotTestPermissions"
     }
 
     guildHandlers = {
@@ -103,11 +104,44 @@ class GameBot(discord.Client) :
         try :
             await guild.owner.send('Thanks for inviting {0} into {1.name}! The default prefix this bot uses to listen for instructions in your Guild is `!`, to change this prefix message `!settings prefix <prefix>` from within your Guild.'.format(self.name, guild))
 
+            permissions = self.checkGuildPermissions(guild)
+
+            if permissions :
+                missing = ", ".join(["`{}`".format(p) for p in permissions ])
+                await guild.owner.send("I'm currently missing the following required Guild permissions: {}".format(missing))
+
         except discord.errors.Forbidden :
             pass
 
-    async def checkPermissions(self, channel) :
-        pass
+    def checkGuildPermissions(self, guild) :
+        if "guild" in self.permissions :
+            def permissionPredicate(permission) :
+                return hasattr(guild.me.guild_permissions, permission) and not getattr(guild.me.guild_permissions, permission)
+
+            missing = list(filter(lambda p: permissionPredicate(p), self.permissions["guild"]))
+            return missing
+
+        return False
+
+    def checkCategoryPermissions(self, channel) :
+        if "category" in self.permissions and channel.category :
+            def permissionPredicate(permission) :
+                return hasattr(channel.category.permissions_for(channel.guild.me), permission) and not getattr(channel.category.permissions_for(channel.guild.me), permission)
+
+            missing = list(filter(lambda p: permissionPredicate(p), self.permissions["category"]))
+            return missing
+
+        return False
+
+    def checkChannelPermissions(self, channel) :
+        if "channel" in self.permissions:
+            def permissionPredicate(permission) :
+                return hasattr(channel.permissions_for(channel.guild.me), permission) and not getattr(channel.permissions_for(channel.guild.me), permission)
+
+            missing = list(filter(lambda p: permissionPredicate(p), self.permissions["channel"]))
+            return missing
+
+        return False
 
     async def logException(self, exception) :
         if "logChannel" in self.settings["bot"] :
@@ -116,9 +150,11 @@ class GameBot(discord.Client) :
 
             if channel :
                 trace = traceback.format_exception(type(exception), exception, exception.__traceback__)
-
+                message = ""
                 for line in trace :
-                    await channel.send("```python\n{}```".format(line))
+                    message += "```python\n{}```".format(line)
+
+                await channel.send(message)
 
     # Discord Events
     async def on_ready(self) :
@@ -128,7 +164,7 @@ class GameBot(discord.Client) :
 
         await self.updatePresenceCount()
 
-        # logger.info('{} launched, active on {} guilds'.format(self.name, len(self.guilds)))
+        logger.info('{} launched, active on {} guilds'.format(self.name, len(self.guilds)))
 
     async def on_guild_join(self, guild) :
         logger.info("Joined guild {}".format(guild.name))
@@ -263,6 +299,15 @@ class GameBot(discord.Client) :
         l = []
         print(l[0])
 
+    @guard.botManager
+    async def cBotTestPermissions(self, message, args) :
+        guild = self.checkGuildPermissions(message.guild)
+        category = self.checkCategoryPermissions(message.channel)
+        channel = self.checkChannelPermissions(message.channel)
+        needCat = "Yes" if ("category" in self.permissions and "in_category" in self.permissions["category"]) else "No"
+
+        await message.channel.send("**Missing permissions**\nGuild\n```{}```\nCategory\n```{}```\nChannel\n```{}```\nNeeds Category?: `{}`".format(guild, category, channel, needCat))
+
     # Guild Commands
     async def cGuildHelp(self, message, args) :
         pass # TODO
@@ -306,9 +351,26 @@ class GameBot(discord.Client) :
         if channel.id in self.settings[message.guild.id]["activeChannels"] :
             await message.channel.send("{0} is already active in {1.mention}".format(self.name, channel))
         else :
-            hasCorrectPermissions = self.checkPermissions(channel)
+            needsCategory = ("category" in self.permissions and "in_category" in self.permissions["category"])
+            notInCategory = needsCategory and not message.channel.category
+            missingCategory = self.checkCategoryPermissions(channel)
+            missingChannel = self.checkChannelPermissions(channel)
 
-            if hasCorrectPermissions :
+            if notInCategory or missingCategory or missingChannel :
+                summary = "I'm missing the following required permissions, please add them and try again:\n"
+
+                if notInCategory :
+                    summary += "*Channel needs to be in a channel category*\n"
+
+                if missingChannel :
+                    summary += "Channel: {}\n".format(", ".join(["`{}`".format(p) for p in missingChannel]))
+
+                if missingCategory :
+                    summary += "Channel Category: {}\n".format(", ".join(["`{}`".format(p) for p in missingCategory]))
+
+                await message.channel.send(summary)
+
+            else :
                 self.settings[message.guild.id]["activeChannels"].append(channel.id)
                 await message.channel.send("{0} now active in {1.mention}".format(self.name, channel))
 
