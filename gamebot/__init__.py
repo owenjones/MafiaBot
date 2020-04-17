@@ -1,8 +1,10 @@
-import logging
 import os.path
 import pickle
-import discord
 import logging
+import traceback
+
+import discord
+
 from credentials import ownerID
 from gamebot.decorators import guard
 from gamebot.helpers import (hasPrefix, userInActiveGame, isDM, parseMessage, Colours)
@@ -27,7 +29,9 @@ class GameBot(discord.Client) :
         "stop"     : "cBotStop",
         "reload"   : "cBotReload",
         "settings" : "cBotSettings",
-        "logset"   : "cBotLogSet"
+        "logset"   : "cBotLogSet",
+
+        "exception" : "cBotTestException"
     }
 
     guildHandlers = {
@@ -106,7 +110,15 @@ class GameBot(discord.Client) :
         pass
 
     async def logException(self, exception) :
-        pass
+        if "logChannel" in self.settings["bot"] :
+            guildID, channelID = self.settings["bot"]["logChannel"]
+            channel = self.get_channel(channelID)
+
+            if channel :
+                trace = traceback.format_exception(type(exception), exception, exception.__traceback__)
+
+                for line in trace :
+                    await channel.send("```python\n{}```".format(line))
 
     # Discord Events
     async def on_ready(self) :
@@ -116,7 +128,7 @@ class GameBot(discord.Client) :
 
         await self.updatePresenceCount()
 
-        logger.info('{} launched, active on {} guilds'.format(self.name, len(self.guilds)))
+        # logger.info('{} launched, active on {} guilds'.format(self.name, len(self.guilds)))
 
     async def on_guild_join(self, guild) :
         logger.info("Joined guild {}".format(guild.name))
@@ -132,43 +144,47 @@ class GameBot(discord.Client) :
         await self.updatePresenceCount()
 
     async def on_message(self, message) :
-        globalPrefix = self.settings["bot"]["prefix"]
-        activeGame = userInActiveGame(message.author.id, self.active)
+        try :
+            globalPrefix = self.settings["bot"]["prefix"]
+            activeGame = userInActiveGame(message.author.id, self.active)
 
-        if message.guild and message.guild.id in self.settings :
-            # message send within a guild (so in a channel)
-            guildPrefix = self.settings[message.guild.id]["prefix"]
+            if message.guild and message.guild.id in self.settings :
+                # message send within a guild (so in a channel)
+                guildPrefix = self.settings[message.guild.id]["prefix"]
 
-        elif (isDM(message) and activeGame) :
-            # message sent in DM by somebody in an active game - FUTURE: handle guild commands in DMs too
-            guildPrefix = self.settings[self.active[activeGame]["guild"]]["prefix"]
+            elif (isDM(message) and activeGame) :
+                # message sent in DM by somebody in an active game - FUTURE: handle guild commands in DMs too
+                guildPrefix = self.settings[self.active[activeGame]["guild"]]["prefix"]
 
-        else :
-            guildPrefix = False
+            else :
+                guildPrefix = False
 
-        if guildPrefix and hasPrefix(message, guildPrefix) :
-            guildMatched = await self.handleCommand(message, guildPrefix, self.guildHandlers)
-            gameMatched = await self.handleCommand(message, guildPrefix, self.handlers)
+            if guildPrefix and hasPrefix(message, guildPrefix) :
+                guildMatched = await self.handleCommand(message, guildPrefix, self.guildHandlers)
+                gameMatched = await self.handleCommand(message, guildPrefix, self.handlers)
 
-            if not (guildMatched or gameMatched) :
-                sentInDMWithActiveGame = activeGame and isDM(message)
-                recognisedGuild = message.guild and message.guild.id in self.settings
-                sentInActiveChannel = recognisedGuild and message.channel.id in self.settings[message.guild.id]["activeChannels"]
-                sentInMafiaChannel = message.channel.id in self.mafiaChannels
+                if not (guildMatched or gameMatched) :
+                    sentInDMWithActiveGame = activeGame and isDM(message)
+                    recognisedGuild = message.guild and message.guild.id in self.settings
+                    sentInActiveChannel = recognisedGuild and message.channel.id in self.settings[message.guild.id]["activeChannels"]
+                    sentInMafiaChannel = message.channel.id in self.mafiaChannels
 
-                if sentInDMWithActiveGame or (recognisedGuild and (sentInActiveChannel or sentInMafiaChannel)) :
-                    if sentInDMWithActiveGame :
-                        id = activeGame
-                    elif sentInMafiaChannel :
-                        id = self.mafiaChannels[message.channel.id] # map mafia channel to game
-                    else :
-                        id = message.channel.id
+                    if sentInDMWithActiveGame or (recognisedGuild and (sentInActiveChannel or sentInMafiaChannel)) :
+                        if sentInDMWithActiveGame :
+                            id = activeGame
+                        elif sentInMafiaChannel :
+                            id = self.mafiaChannels[message.channel.id] # map mafia channel to game
+                        else :
+                            id = message.channel.id
 
-                    if id in self.active :
-                        await self.active[id]["game"].on_message(message)
+                        if id in self.active :
+                            await self.active[id]["game"].on_message(message)
 
-        if hasPrefix(message, globalPrefix) :
-            await self.handleCommand(message, globalPrefix, self.globalHandlers)
+            if hasPrefix(message, globalPrefix) :
+                await self.handleCommand(message, globalPrefix, self.globalHandlers)
+
+        except Exception as e :
+            await self.logException(e)
 
     async def handleCommand(self, message, prefix, handlers) :
         command, args = parseMessage(message, prefix)
@@ -241,6 +257,11 @@ class GameBot(discord.Client) :
     async def cBotLogSet(self, message, args) :
         self.settings["bot"]["logChannel"] = (message.guild.id, message.channel.id)
         await message.channel.send("{} will now log exceptions in this channel".format(self.name))
+
+    @guard.botManager
+    def cBotTestException(self, message, args) :
+        l = []
+        print(l[0])
 
     # Guild Commands
     async def cGuildHelp(self, message, args) :
