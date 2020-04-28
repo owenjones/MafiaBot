@@ -2,7 +2,9 @@ import math
 import random
 from enum import Enum
 from collections import Counter
+
 import discord
+
 from gamebot.helpers import (parseMessage, userInActiveGame, isDM, Colours)
 
 commands = [
