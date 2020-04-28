@@ -118,7 +118,7 @@ class GameBot(discord.Client) :
             def permissionPredicate(permission) :
                 return hasattr(guild.me.guild_permissions, permission) and not getattr(guild.me.guild_permissions, permission)
 
-            missing = list(filter(lambda p: permissionPredicate(p), self.permissions["guild"]))
+            missing = list(filter(permissionPredicate, self.permissions["guild"]))
             return missing
 
         return False
@@ -128,7 +128,7 @@ class GameBot(discord.Client) :
             def permissionPredicate(permission) :
                 return hasattr(channel.category.permissions_for(channel.guild.me), permission) and not getattr(channel.category.permissions_for(channel.guild.me), permission)
 
-            missing = list(filter(lambda p: permissionPredicate(p), self.permissions["category"]))
+            missing = list(filter(permissionPredicate, self.permissions["category"]))
             return missing
 
         return False
@@ -138,7 +138,7 @@ class GameBot(discord.Client) :
             def permissionPredicate(permission) :
                 return hasattr(channel.permissions_for(channel.guild.me), permission) and not getattr(channel.permissions_for(channel.guild.me), permission)
 
-            missing = list(filter(lambda p: permissionPredicate(p), self.permissions["channel"]))
+            missing = list(filter(permissionPredicate, self.permissions["channel"]))
             return missing
 
         return False
@@ -242,7 +242,7 @@ class GameBot(discord.Client) :
     async def cBotStats(self, message, args) :
         embed = discord.Embed(
             title="{}".format(self.name),
-            description="Currently running on {0} Guild{1} ({2}), with {3} active game{4}".format(
+            description="Currently running on {0} server{1} ({2}), with {3} active game{4}".format(
                 len(self.guilds),
                 "s" if len(self.guilds) != 1 else "",
                 ", ".join([g.name for g in self.guilds]),
@@ -286,7 +286,7 @@ class GameBot(discord.Client) :
             elif option == "removeuser" and len(message.mentions) > 0 and message.mentions[0].id in self.settings["bot"]["manageUsers"]:
                 self.settings["bot"]["manage"].remove(message.mentions[0].id)
 
-        await message.channel.send(self.settings)
+        await message.channel.send("```python\n{}```".format(self.settings))
 
     @guard.onlyChannel
     @guard.botManager
@@ -299,7 +299,7 @@ class GameBot(discord.Client) :
         l = []
         print(l[0])
 
-    @guard.botManager
+    @guard.guildManager
     async def cBotTestPermissions(self, message, args) :
         guild = self.checkGuildPermissions(message.guild)
         category = self.checkCategoryPermissions(message.channel)
@@ -319,21 +319,26 @@ class GameBot(discord.Client) :
 
             if option == "prefix" and len(args) > 2 :
                 self.settings[message.guild.id]["prefix"] = args[2]
-                await message.channel.send("Prefix changed to {}".format(args[2]))
+                await message.channel.send("Prefix changed to `{}`".format(args[2]))
 
             elif option == "adduser" and len(message.mentions) > 0 :
                 self.settings[message.guild.id]["manageUsers"].append(message.mentions[0].id)
+                await message.channel.send("{0.mention} added to the manager list".format(message.mentions[0]))
 
             elif option == "removeuser" and len(message.mentions) > 0 and message.mentions[0].id in self.settings[message.guild.id]["manageUsers"]:
                 self.settings[message.guild.id]["manageUsers"].remove(message.mentions[0].id)
+                await message.channel.send("{0.mention} removed from the manager list".format(message.mentions[0]))
 
             elif option == "addrole" and len(message.role_mentions) > 0 :
                 self.settings[message.guild.id]["manageRoles"].append(message.role_mentions[0].id)
+                await message.channel.send("Role {0.mention} added to the manager list".format(message.role_mentions[0]))
 
             elif option == "removerole" and len(message.role_mentions) > 0 and message.role_mentions[0].id in self.settings[message.guild.id]["manageRoles"]:
                 self.settings[message.guild.id]["manageRoles"].remove(message.role_mentions[0].id)
+                await message.channel.send("Role {0.mention} removed from the manager list".format(message.role_mentions[0]))
 
-        await message.channel.send(self.settings[message.guild.id])
+        else :
+            await message.channel.send("```python\n{}```".format(self.settings[message.guild.id]))
 
     @guard.guildManager
     def cGuildEnable(self, message, args) :
