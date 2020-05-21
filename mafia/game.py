@@ -253,9 +253,14 @@ class Game :
                     colour=Colours.BLUE
                 ))
 
-        elif command == "who" and self.state in (State.START, State.ROUNDSLEEP, State.ROUNDPURGE) :
-            players = " ".join([ "{0.mention}".format(m) for m in self.players ])
-            embed = discord.Embed(description="{} are still in the game.".format(players), color=Colours.DARK_BLUE)
+        elif command == "who" and self.state in [State.START, State.ROUNDSLEEP, State.ROUNDPURGE] :
+            if len(self.players) > 0 :
+                are = "are" if len(self.players) > 1 else "is"
+                players = " ".join([ "{0.mention}".format(m) for m in self.players ])
+                await self.channel.send(embed=discord.Embed(description="{} {} in the game".format(players, are), color=Colours.DARK_BLUE))
+
+            else :
+                await self.channel.send(embed=discord.Embed(description="Nobody is in the game yet", color=Colours.DARK_BLUE))
 
     # Game Helpers
     def checkWinConditions(self) :
