@@ -9,6 +9,7 @@ The default prefix the bot uses in a server is `!`, this can be changed using th
 * **!mafia** - starts a new game of Mafia
 * **!destroy** - kills a current running game of Mafia
 * **!why** - find out what the bot is currently waiting for
+* **!who** - find out who's in the current game
 
 The bot will prompt with other commands during the game:
 
