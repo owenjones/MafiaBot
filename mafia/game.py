@@ -240,10 +240,11 @@ class Game :
 
             elif self.state == State.ROUNDPURGE :
                 remaining = len(self.players) - len(self.roundPurge)
-                playing = ", ".join([ p for p in players if p.id not in self.roundPurge ])
+                playing = ", ".join([ "{0.mention}".format(p) for p in self.players if p.id not in self.roundPurge ])
+                plural = "players" if remaining > 1 else "player"
 
                 await self.channel.send(embed=discord.Embed(
-                    description="I'm waiting for the village to discuss - {0} players left to make a decision ({})".format(remaining, players),
+                    description="I'm waiting for the village to discuss - {0} {1} left to make a decision ({2})".format(remaining, plural, players),
                     colour=Colours.BLUE
                 ))
 
@@ -330,7 +331,7 @@ class Game :
         method = "purged" if purge else "killed"
 
         if player in self.mafia :
-            role = "in the **Mafia**"
+            role = "in the **mafia**"
             await self.removeFromMafia(player)
 
         elif player == self.doctor :
