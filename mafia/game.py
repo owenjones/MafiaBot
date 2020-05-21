@@ -13,7 +13,8 @@ commands = [
     "start",
     "choose",
     "purge",
-    "why"
+    "why",
+    "players"
 ]
 
 class State(Enum) :
@@ -28,9 +29,9 @@ class Win(Enum) :
 
 class Game :
 
-    bot     = None # bot object
-    guild   = None # guild ID
-    channel = None # channel ID
+    bot     = None
+    guild   = None
+    channel = None
 
     minPlayers = 5
     maxPlayers = 15
@@ -49,21 +50,21 @@ class Game :
         self.setInitialState()
 
     def setInitialState(self) :
-        self.mafiaChannel = None
-        self.players = [ ]
-        self.villagers = [ ]
-        self.mafia = [ ]
-        self.doctor = None
-        self.detective = None
-        self.round = 1
-        self.mafiaChoose = {}
-        self.roundKill = None
+        self.mafiaChannel  = None
+        self.players       = [ ]
+        self.villagers     = [ ]
+        self.mafia         = [ ]
+        self.doctor        = None
+        self.detective     = None
+        self.round         = 1
+        self.mafiaChoose   = {}
+        self.roundKill     = None
         self.roundKillSkip = None
-        self.roundSave = None
+        self.roundSave     = None
         self.lastRoundSave = None
-        self.roundDetect = None
-        self.roundPurge = {}
-        self.state = State.START
+        self.roundDetect   = None
+        self.roundPurge    = {}
+        self.state         = State.START
 
     async def destroy(self) :
         await self.removeMafiaChannel()
@@ -239,8 +240,10 @@ class Game :
 
             elif self.state == State.ROUNDPURGE :
                 remaining = len(self.players) - len(self.roundPurge)
+                playing = ", ".join([ p for p in players if p.id not in self.roundPurge ])
+
                 await self.channel.send(embed=discord.Embed(
-                    description="I'm waiting for the village to discuss - {0} left to make a decision".format(remaining),
+                    description="I'm waiting for the village to discuss - {0} players left to make a decision ({})".format(remaining, players),
                     colour=Colours.BLUE
                 ))
 
@@ -250,7 +253,9 @@ class Game :
                     colour=Colours.BLUE
                 ))
 
-        # print("{} sent by {}".format(command, message.author.display_name))
+        elif command == "who" and self.state in (State.START, State.ROUNDSLEEP, State.ROUNDPURGE) :
+            players = " ".join([ "{0.mention}".format(m) for m in self.players ])
+            embed = discord.Embed(description="{} are still in the game.".format(players), color=Colours.DARK_BLUE)
 
     # Game Helpers
     def checkWinConditions(self) :
@@ -410,14 +415,16 @@ class Game :
         await self.mafiaChannel.send("{} - you are the mafia, each night you get to mark one villager for death!".format(mafia))
 
         for v in self.villagers :
-            if v == self.doctor :
+            if v in self.mafia :
+                await v.send("You're in the mafia, each night you get to mark one villager for death! Look for `#the-mafia` channel to make your choice.")
+            elif v == self.doctor :
                 await v.send("You're the doctor, each night you get to pick one villager to save - you can't save the same person two nights in a row")
 
             elif v == self.detective :
                 await v.send("You're the detective, each night you get to pick one villager to investigate and find out if they're in the mafia")
 
             else :
-                await v.send("You're a villager, keep your wits about you there are Mafia on the loose!")
+                await v.send("You're a villager, keep your wits about you there are mafia on the loose!")
 
     async def sendPrompts(self) :
         mafiaPrompt = "Each reply with `{}choose number` to choose the player you wish to mark for death - you need to come to an agreement as a group, if there's no clear choice then nobody will be marked, so you may want to discuss your choice first!".format(self.prefix)
