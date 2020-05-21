@@ -14,7 +14,7 @@ commands = [
     "choose",
     "purge",
     "why",
-    "players"
+    "who"
 ]
 
 class State(Enum) :
