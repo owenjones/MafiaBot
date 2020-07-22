@@ -326,7 +326,7 @@ class Game:
 
             elif self.state == State.ROUNDPURGE:
                 remaining = len(self.players) - len(self.roundPurge)
-                playing = ", ".join(
+                players = ", ".join(
                     [
                         "{0.mention}".format(p)
                         for p in self.players
