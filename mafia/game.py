@@ -508,6 +508,8 @@ class Game:
         await self.startRound()
 
     async def endGame(self, win=False):
+        self.state = State.END
+
         if win == Win.VILLAGERS:
             winners = " ".join(["{0.mention}".format(m) for m in self.villagers])
             embed = discord.Embed(
@@ -526,8 +528,6 @@ class Game:
                 colour=Colours.DARK_RED,
             )
 
-            await self.removeMafiaChannel()
-
         else:
             embed = discord.Embed(
                 description="The game has had to end for some reason :cry:\n\nMessage `{}restart` to start a new game".format(
@@ -536,14 +536,13 @@ class Game:
                 colour=Colours.BLUE,
             )
 
+        await self.removeMafiaChannel()
         await self.channel.send(embed=embed)
 
         if self.settings["winCommand"]:
             await self.channel.send(
                 "{} {}".format(self.settings["winCommand"], winners)
             )
-
-        self.state = State.END
 
     # Round Flow
     async def startRound(self):
@@ -588,8 +587,10 @@ class Game:
         mafiaPrompt = "Each reply with `{}choose number` to choose the player you wish to mark for death - you need to come to an agreement as a group, if there's no clear choice then nobody will be marked, so you may want to discuss your choice first!".format(
             self.prefix
         )
-        doctorPrompt = "Reply with `{}choose number` to choose the player you wish to save".format(
-            self.prefix
+        doctorPrompt = (
+            "Reply with `{}choose number` to choose the player you wish to save".format(
+                self.prefix
+            )
         )
         detectivePrompt = "Reply with `{}choose number` to choose the player you wish to investigate".format(
             self.prefix
