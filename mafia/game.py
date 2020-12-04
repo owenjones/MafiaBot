@@ -614,7 +614,8 @@ class Game:
 
     async def testRoundContinue(self):
         if (
-            (self.roundKill or self.roundKillSkip)
+            (self.state == State.SLEEP)
+            and (self.roundKill or self.roundKillSkip)
             and (not self.doctor or self.roundSave)
             and (not self.detective or self.roundDetect)
         ):
