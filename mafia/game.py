@@ -599,7 +599,7 @@ class Game:
         doctorPrompt = "Reply with `{0}choose number` (e.g. `{0}choose 1`) to choose the player you wish to save".format(
             self.prefix
         )
-        detectivePrompt = "Reply with `{}choose number` (e.g. `{0}choose 1`) to choose the player you wish to investigate".format(
+        detectivePrompt = "Reply with `{0}choose number` (e.g. `{0}choose 1`) to choose the player you wish to investigate".format(
             self.prefix
         )
 
