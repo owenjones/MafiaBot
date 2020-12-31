@@ -433,10 +433,19 @@ class Game:
             for m in self.mafia:
                 overwrites[m] = mafiaPermissions
 
-            self.mafiaChannel = await self.channel.category.create_text_channel(
-                "the-mafia", overwrites=overwrites
-            )
-            self.bot.mafiaChannels[self.mafiaChannel.id] = self.channel.id
+            try:
+                self.mafiaChannel = await self.channel.category.create_text_channel(
+                    "the-mafia", overwrites=overwrites
+                )
+                self.bot.mafiaChannels[self.mafiaChannel.id] = self.channel.id
+                return True
+
+            except discord.errors.Forbidden:
+                await self.channel.send(
+                    ":exploding_head: I can't continue because I don't have permission to create text channels in this channel category - did you remove the permission?"
+                )
+                await self.endGame()
+                return False
 
     async def removeMafiaChannel(self):
         if self.mafiaChannel:
@@ -500,9 +509,11 @@ class Game:
     # Game Flow
     async def startGame(self):
         self.allocateRoles()
-        await self.makeMafiaChannel()
-        await self.sendIntros()
-        await self.startRound()
+        created = await self.makeMafiaChannel()
+
+        if created:
+            await self.sendIntros()
+            await self.startRound()
 
     async def continueGame(self):
         self.lastRoundSave = self.roundSave
